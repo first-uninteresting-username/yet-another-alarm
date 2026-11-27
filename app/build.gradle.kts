@@ -16,8 +16,8 @@ android {
         applicationId = "io.github.first_uninteresting_username.yetanotheralarm"
         minSdk = 31
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.2.1"
     }
 
     // Release signing comes from the environment (GitHub Actions secrets).

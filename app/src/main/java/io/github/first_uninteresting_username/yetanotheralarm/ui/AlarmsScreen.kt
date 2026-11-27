@@ -20,13 +20,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumExtendedFloatingActionButton
+import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -45,21 +46,24 @@ import io.github.first_uninteresting_username.yetanotheralarm.Alarm
 import io.github.first_uninteresting_username.yetanotheralarm.AlarmScheduler
 import io.github.first_uninteresting_username.yetanotheralarm.AlarmStore
 import io.github.first_uninteresting_username.yetanotheralarm.R
+import io.github.first_uninteresting_username.yetanotheralarm.Settings
 import io.github.first_uninteresting_username.yetanotheralarm.formatDays
 import io.github.first_uninteresting_username.yetanotheralarm.formatTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private sealed interface Editing {
-    data object New : Editing
+    /** A new alarm, prefilled from [template] when duplicating. */
+    data class New(val template: Alarm? = null) : Editing
     data class Existing(val alarm: Alarm) : Editing
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlarmsScreen(store: AlarmStore, onShowAbout: () -> Unit) {
+fun AlarmsScreen(store: AlarmStore, settings: Settings, onShowSettings: () -> Unit) {
     val context = LocalContext.current
     val alarms by store.alarms.collectAsStateWithLifecycle()
+    val defaultSound by settings.defaultSound.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Editing?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -69,18 +73,19 @@ fun AlarmsScreen(store: AlarmStore, onShowAbout: () -> Unit) {
             LargeFlexibleTopAppBar(
                 title = { Text("Alarms") },
                 actions = {
-                    IconButton(onClick = onShowAbout) {
-                        Icon(painterResource(R.drawable.ic_info), contentDescription = "About and licenses")
+                    IconButton(onClick = onShowSettings) {
+                        Icon(painterResource(R.drawable.ic_settings), contentDescription = "Settings")
                     }
                 },
                 scrollBehavior = scrollBehavior,
             )
         },
         floatingActionButton = {
-            MediumExtendedFloatingActionButton(onClick = { editing = Editing.New }) {
-                Icon(painterResource(R.drawable.ic_add), contentDescription = null)
-                Text("Add alarm")
-            }
+            SmallExtendedFloatingActionButton(
+                text = { Text("Add alarm") },
+                icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
+                onClick = { editing = Editing.New() },
+            )
         },
     ) { padding ->
         val direction = LocalLayoutDirection.current
@@ -120,9 +125,17 @@ fun AlarmsScreen(store: AlarmStore, onShowAbout: () -> Unit) {
     }
 
     editing?.let { current ->
-        AlarmEditor(
-            initial = (current as? Editing.Existing)?.alarm,
-            onDismiss = { editing = null },
+        // Fresh editor state per target, so duplicating starts a new sheet.
+        key(current) {
+            AlarmEditor(
+                initial = when (current) {
+                    is Editing.New -> current.template
+                    is Editing.Existing -> current.alarm
+                },
+                isNew = current is Editing.New,
+                defaultSound = defaultSound,
+                onDuplicate = { editing = Editing.New(it) },
+                onDismiss = { editing = null },
             onSave = { alarm ->
                 store.upsert(alarm.copy(enabled = true, snoozedUntil = null))
                 AlarmScheduler.sync(context)
@@ -133,7 +146,8 @@ fun AlarmsScreen(store: AlarmStore, onShowAbout: () -> Unit) {
                 AlarmScheduler.cancel(context, id)
                 editing = null
             },
-        )
+            )
+        }
     }
 }
 

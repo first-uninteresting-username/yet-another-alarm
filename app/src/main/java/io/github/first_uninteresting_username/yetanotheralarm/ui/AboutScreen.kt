@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -66,7 +67,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("yet-another-alarm $version", style = MaterialTheme.typography.titleLarge)
+                        Text("${stringResource(R.string.app_name)} $version", style = MaterialTheme.typography.titleLarge)
                         Text(licenseNotice(), style = MaterialTheme.typography.bodyMedium)
                         Text(
                             "Open source licenses",

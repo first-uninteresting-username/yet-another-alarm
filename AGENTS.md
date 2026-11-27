@@ -6,7 +6,9 @@ Android alarm clock: Kotlin, Jetpack Compose, Material 3 Expressive with dynamic
 
 Build only what the spec covers; propose anything else to the maintainer before writing it. Spec: multiple alarms (time, repeat days, sound, per-alarm snooze length), user-picked sound files only (nothing bundled), trivia-gated snooze, stop behind a confirmation banner. The 5-second OpenTDB rate limit is the intended wait between questions after a wrong answer.
 
-Dependencies stay FOSS: AndroidX, Compose, kotlinx only. Network goes through `HttpURLConnection`.
+Dependencies stay FOSS: AndroidX, Compose, kotlinx, AboutLibraries. Network goes through `HttpURLConnection`.
+
+AboutLibraries collects every bundled dependency's license for the About screen and fails the build on any license outside `allowedLicenses` in `app/build.gradle.kts`. Bundled material that is not a Gradle dependency (icons, trivia data) gets an entry in `app/aboutlibraries/libraries/`.
 
 ## Environment
 

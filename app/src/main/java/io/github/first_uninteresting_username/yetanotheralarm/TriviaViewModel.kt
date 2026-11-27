@@ -28,6 +28,10 @@ class TriviaViewModel(app: Application) : AndroidViewModel(app) {
     var failures by mutableIntStateOf(0)
         private set
 
+    /** `SystemClock.elapsedRealtime()` at which the rate limit allows the next request, while waiting for it. */
+    var waitingUntil by mutableStateOf<Long?>(null)
+        private set
+
     val solved get() = picked != null && picked == question?.correct
 
     fun start() {
@@ -44,8 +48,12 @@ class TriviaViewModel(app: Application) : AndroidViewModel(app) {
         job = viewModelScope.launch {
             loading = true
             while (true) {
-                val wait = lastRequestAt + RATE_LIMIT_MS - SystemClock.elapsedRealtime()
-                if (wait > 0) delay(wait)
+                val readyAt = lastRequestAt + RATE_LIMIT_MS
+                if (readyAt > SystemClock.elapsedRealtime()) {
+                    waitingUntil = readyAt
+                    delay(readyAt - SystemClock.elapsedRealtime())
+                    waitingUntil = null
+                }
                 lastRequestAt = SystemClock.elapsedRealtime()
                 when (val result = trivia.next()) {
                     is OpenTrivia.Result.Success -> {
@@ -62,7 +70,7 @@ class TriviaViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private companion object {
+    companion object {
         const val RATE_LIMIT_MS = 5_000L
     }
 }

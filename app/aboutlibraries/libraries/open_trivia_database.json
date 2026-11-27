@@ -1,0 +1,8 @@
+{
+  "uniqueId": "opentdb:questions",
+  "name": "Open Trivia Database",
+  "description": "Trivia questions shown when snoozing, fetched at runtime and unmodified.",
+  "website": "https://opentdb.com",
+  "developers": [{ "name": "PIXELTAIL GAMES LLC and contributors", "organisationUrl": "https://opentdb.com" }],
+  "licenses": ["CC-BY-SA-4.0"]
+}

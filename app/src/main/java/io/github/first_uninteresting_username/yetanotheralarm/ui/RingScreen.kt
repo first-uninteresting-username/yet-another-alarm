@@ -1,5 +1,6 @@
 package io.github.first_uninteresting_username.yetanotheralarm.ui
 
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -30,13 +31,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -148,7 +158,7 @@ private fun TriviaPanel(alarm: Alarm, onSolved: () -> Unit) {
     ) {
         val question = trivia.question
         if (question == null) {
-            LoadingIndicator(Modifier.size(64.dp))
+            QuestionProgress(trivia.waitingUntil)
             Text("Fetching a question…", style = MaterialTheme.typography.bodyLarge)
         } else {
             Text(
@@ -169,10 +179,8 @@ private fun TriviaPanel(alarm: Alarm, onSolved: () -> Unit) {
                 }
             }
             if (trivia.loading) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LoadingIndicator(Modifier.size(40.dp))
-                    Text("Wrong. Next question coming…", style = MaterialTheme.typography.bodyLarge)
-                }
+                Text("Wrong. Waiting for the next question…", style = MaterialTheme.typography.bodyLarge)
+                QuestionProgress(trivia.waitingUntil)
             }
         }
 
@@ -188,12 +196,45 @@ private fun TriviaPanel(alarm: Alarm, onSolved: () -> Unit) {
         }
 
         Text(
-            "Questions from Open Trivia Database (opentdb.com), CC BY-SA 4.0",
+            triviaAttribution(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
+}
+
+/** Credit required by the questions' CC BY-SA 4.0 license. */
+@Composable
+private fun triviaAttribution() = buildAnnotatedString {
+    val link = TextLinkStyles(SpanStyle(textDecoration = TextDecoration.Underline))
+    append("Questions from ")
+    withLink(LinkAnnotation.Url("https://opentdb.com", link)) { append("Open Trivia Database") }
+    append(", licensed ")
+    withLink(LinkAnnotation.Url("https://creativecommons.org/licenses/by-sa/4.0/", link)) { append("CC BY-SA 4.0") }
+}
+
+/**
+ * Fills up while waiting out the OpenTDB rate limit, then turns indeterminate
+ * while the request is in flight.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun QuestionProgress(waitingUntil: Long?) {
+    val modifier = Modifier.fillMaxWidth()
+    if (waitingUntil == null) {
+        LinearWavyProgressIndicator(modifier)
+        return
+    }
+    var progress by remember(waitingUntil) { mutableFloatStateOf(0f) }
+    LaunchedEffect(waitingUntil) {
+        do {
+            val left = waitingUntil - SystemClock.elapsedRealtime()
+            progress = 1f - left.coerceAtLeast(0) / TriviaViewModel.RATE_LIMIT_MS.toFloat()
+            withFrameMillis {}
+        } while (left > 0)
+    }
+    LinearWavyProgressIndicator(progress = { progress }, modifier = modifier)
 }
 
 @Composable

@@ -16,7 +16,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumExtendedFloatingActionButton
 import androidx.compose.material3.Scaffold
@@ -35,6 +37,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,7 +57,7 @@ private sealed interface Editing {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlarmsScreen(store: AlarmStore) {
+fun AlarmsScreen(store: AlarmStore, onShowAbout: () -> Unit) {
     val context = LocalContext.current
     val alarms by store.alarms.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Editing?>(null) }
@@ -63,7 +66,15 @@ fun AlarmsScreen(store: AlarmStore) {
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeFlexibleTopAppBar(title = { Text("Alarms") }, scrollBehavior = scrollBehavior)
+            LargeFlexibleTopAppBar(
+                title = { Text("Alarms") },
+                actions = {
+                    IconButton(onClick = onShowAbout) {
+                        Icon(painterResource(R.drawable.ic_info), contentDescription = "About and licenses")
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+            )
         },
         floatingActionButton = {
             MediumExtendedFloatingActionButton(onClick = { editing = Editing.New }) {
@@ -152,17 +163,20 @@ private fun AlarmCard(alarm: Alarm, onClick: () -> Unit, onToggle: (Boolean) -> 
                     Text("Snoozed until ${formatTime(context, it)}", style = MaterialTheme.typography.bodyMedium)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Inherit the card's content color so the text contrasts with either card color.
+                    val color = if (soundReadable) LocalContentColor.current else MaterialTheme.colorScheme.error
                     Icon(
                         painterResource(if (soundReadable) R.drawable.ic_music_note else R.drawable.ic_warning),
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = if (soundReadable) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                        tint = color,
                     )
                     Text(
                         if (soundReadable) alarm.soundName else "Sound file missing, will only vibrate",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (soundReadable) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                        color = color,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

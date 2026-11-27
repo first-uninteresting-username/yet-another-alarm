@@ -1,0 +1,11 @@
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  # Up-to-date Android SDK packages; nixpkgs androidenv lags behind.
+  android-nixpkgs:
+    url: github:tadfisher/android-nixpkgs/stable
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+nixpkgs:
+  allow_unfree: true
